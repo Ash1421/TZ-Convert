@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A precise, IANA-first timezone converter and resolver. Works fully offline." />
+  <title>TZ-Convert</title>
+  <link rel="icon" type="image/x-icon" href="https://ash1421.com/assets/img/favicon.ico" />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header id="site-header">
+    <div class="header-left">
+      <img src="https://ash1421.com/assets/img/favicon.ico" alt="TZ-Convert" class="header-logo" />
+      <span class="header-title">TZ-Convert</span>
+    </div>
+    <span id="live-clock" aria-live="polite"></span>
+  </header>
+
+  <!-- Tab navigation -->
+  <nav id="tab-nav" aria-label="Sections">
+    <button class="tab-btn active" data-tab="converter">Converter</button>
+    <button class="tab-btn" data-tab="resolver">Resolver</button>
+    <button class="tab-btn" data-tab="world">World Clocks</button>
+  </nav>
+
+  <!-- Main content -->
+  <main id="content">
+
+    <!-- Converter panel -->
+    <section id="tab-converter" class="panel active">
+      <div class="card">
+        <h2 class="card-title">Convert Time Between Zones</h2>
+        <p class="card-sub">DST handled automatically via the browser's built-in IANA database.</p>
+
+        <div class="tz-row">
+          <div class="tz-col">
+            <label for="from-tz">FROM TIMEZONE</label>
+            <input id="from-tz" type="text" placeholder="e.g. UTC, America/Denver, PST"
+                   autocomplete="off" spellcheck="false" />
+            <div class="tz-suggest" id="from-suggest" hidden></div>
+          </div>
+
+          <button class="btn-swap" id="btn-swap" aria-label="Swap timezones" title="Swap timezones">⇄</button>
+
+          <div class="tz-col">
+            <label for="to-tz">TO TIMEZONE</label>
+            <input id="to-tz" type="text" placeholder="e.g. Australia/Sydney, NZST"
+                   autocomplete="off" spellcheck="false" />
+            <div class="tz-suggest" id="to-suggest" hidden></div>
+          </div>
+        </div>
+
+        <div class="dt-row">
+          <div class="dt-col">
+            <label for="dt-input">DATE &amp; TIME (YYYY-MM-DD HH:MM)</label>
+            <input id="dt-input" type="text" placeholder="e.g. 2026-06-22 14:30"
+                   autocomplete="off" spellcheck="false" />
+          </div>
+          <div class="dt-actions">
+            <button class="btn-ghost" id="btn-now">Use Now</button>
+            <button class="btn-accent" id="btn-convert">Convert</button>
+          </div>
+        </div>
+
+        <div class="result-box" id="conv-result" aria-live="polite">
+          Enter a time above and press Convert.
+        </div>
+      </div>
+    </section>
+
+    <!-- Resolver panel -->
+    <section id="tab-resolver" class="panel" hidden>
+      <div class="card">
+        <h2 class="card-title">Location to IANA Timezone</h2>
+        <p class="card-sub">Enter a city, state, country, or abbreviation — get back a correct IANA timezone string.</p>
+
+        <div class="resolve-row">
+          <div class="tz-col">
+            <input id="loc-input" type="text"
+                   placeholder='e.g. "Denver", "Kansas", "PST", "Australia"'
+                   autocomplete="off" spellcheck="false" />
+            <div class="tz-suggest" id="loc-suggest" hidden></div>
+          </div>
+          <button class="btn-accent" id="btn-resolve">Resolve</button>
+        </div>
+
+        <div class="chip-row" id="example-chips" aria-label="Quick examples"></div>
+
+        <div class="result-box" id="res-result" aria-live="polite">
+          Enter a location above to resolve its timezone.
+        </div>
+      </div>
+    </section>
+
+    <!-- World clocks panel -->
+    <section id="tab-world" class="panel" hidden>
+      <h2 class="section-title">World Clocks</h2>
+      <div class="world-grid" id="world-grid"></div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer id="site-footer">
+    <span>TZ-Convert by <a href="https://github.com/Ash1421" target="_blank" rel="noopener">Ash1421</a></span>
+    <span>GPL v3.0</span>
+  </footer>
+
+  <script src="assets/js/data.js"></script>
+  <script src="assets/js/resolver.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

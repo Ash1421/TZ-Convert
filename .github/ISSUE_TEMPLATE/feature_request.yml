@@ -1,0 +1,21 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Have an idea? Let's hear it.
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature description
+      placeholder: e.g. "Add fuzzy matching for Australian suburb names"
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Why would this be useful?
+    validations:
+      required: false

@@ -1,0 +1,56 @@
+name: Bug Report
+description: Report a bug or unexpected behaviour
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to fill out this bug report.
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      placeholder: e.g. "Denver resolves to Mountain Time but displays Central"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the app
+        2. Enter "Denver" in the Resolver tab
+        3. Press Resolve
+        4. See wrong result
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: e.g. v1.0.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      options:
+        - Windows 10
+        - Windows 11
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - Desktop GUI
+        - Web server
+        - CLI
+        - Static web page (tzc.ash1421.com)
+    validations:
+      required: true

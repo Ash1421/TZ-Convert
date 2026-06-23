@@ -1,0 +1,12 @@
+# TZ-Convert — Python dependencies
+#
+# tzdata is required on Windows (Python's zoneinfo has no system
+# timezone database there). On Linux/macOS it's a no-op fallback.
+
+tzdata>=2024.1
+
+# GUI
+customtkinter>=5.2.0
+
+# Web server
+flask>=3.0.0
