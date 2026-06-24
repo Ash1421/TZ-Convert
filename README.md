@@ -4,6 +4,9 @@
 
 **A precise IANA timezone resolver and converter — desktop GUI, REST API, web server, and a static site that runs fully offline.**
 
+[![Latest Version](https://img.shields.io/github/v/release/Ash1421/TZ-Convert?style=for-the-badge&label=Latest%20Version&logo=github&logoColor=white&labelColor=1c1917&color=6829B1)](https://github.com/Ash1421/TZ-Convert/releases/latest)
+[![Build](https://img.shields.io/github/actions/workflow/status/Ash1421/TZ-Convert/build.yml?style=for-the-badge&logo=github-actions&logoColor=white&labelColor=1c1917&color=6829B1&label=Build)](https://github.com/Ash1421/TZ-Convert/actions/workflows/build.yml)
+[![Total Downloads](https://img.shields.io/github/downloads/Ash1421/TZ-Convert/total?style=for-the-badge&logo=github&logoColor=white&labelColor=1c1917&color=6829B1&label=Total%20Downloads)](https://github.com/Ash1421/TZ-Convert/releases)
 [![License: GPL v3.0](https://img.shields.io/badge/License-GPL%20v3.0-6829B1.svg?style=for-the-badge&labelColor=1c1917&logo=gnu&logoColor=white)](./LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=for-the-badge&logo=python&logoColor=white&labelColor=1c1917)](https://www.python.org/)
 
@@ -21,9 +24,10 @@
 🌍 **Timezone Resolver** — Maps cities, states, countries, and abbreviations to correct IANA strings, with regional edge-case handling (e.g. western Kansas → Mountain Time, Florida panhandle → Central Time)  
 ⏱ **Time Converter** — DST-aware conversion between any two IANA timezones  
 🖥️ **Desktop GUI** — Dark purple `customtkinter` app with live world clocks  
-🌐 **Static Web Page** — Works offline by cloning the repo and opening `index.html`; also live at [tzc.ash1421.com](https://tzc.ash1421.com)  
+🌐 **Static Web Page** — Works offline by cloning the repo and opening `index.html`
 🔌 **Flask REST API** — Serve the app and API locally with `--server`  
 💻 **CLI** — Resolve or convert directly from your terminal  
+📦 **Windows EXE** — Single-file, no Python required; built automatically on release  
 
 ---
 
@@ -49,7 +53,15 @@ It works fully offline too — clone the repo and open `index.html` directly in 
 
 ## 🚀 Installation
 
-### Option A — Run from source (Python 3.9+)
+### Option A — Download the EXE (Windows, no Python needed)
+
+Go to the [Latest Release](https://github.com/Ash1421/TZ-Convert/releases/latest) and download `tz-convert-vX.X.X-windows-x64.exe`.
+
+Double-click to launch the GUI.
+
+---
+
+### Option B — Run from source (Python 3.9+)
 
 ```bash
 # 1. Clone the repo
@@ -193,7 +205,6 @@ pip install -r requirements.txt
 pyinstaller tz_convert.spec --noconfirm
 # Output: dist/tz-convert.exe
 ```
-
 </details>
 
 ---
@@ -207,7 +218,7 @@ pyinstaller tz_convert.spec --noconfirm
 
 ## 📜 License
 
-This project is licensed under the [GPL V3.0](./LICENSE) (GNU General Public License V3.0).
+[GPL v3.0](./LICENSE) — GNU General Public License V3.0
 
 ---
 

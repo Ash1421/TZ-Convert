@@ -18,7 +18,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from flask import Flask, jsonify, redirect, url_for
+from flask import Flask, jsonify
 
 from converter import (
     convert_time,
@@ -140,7 +140,7 @@ def api_world():
 # ---------------------------------------------------------------------------
 
 def run(host: str = "127.0.0.1", port: int = 5000, debug: bool = False):
-    print(f"\nTZ-Convert web server")
+    print("\nTZ-Convert web server")
     print(f"  http://{host}:{port}/")
     print(f"  API: http://{host}:{port}/api/\n")
     app.run(host=host, port=port, debug=debug)

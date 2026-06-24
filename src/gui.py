@@ -279,11 +279,14 @@ class App(ctk.CTk):
         raw_dt   = self._dt.get().strip()
 
         if not raw_dt:
-            self._set_conv("Enter a date and time.", RED); return
+            self._set_conv("Enter a date and time.", RED)
+            return
         if not from_raw:
-            self._set_conv("Enter a source timezone.", RED); return
+            self._set_conv("Enter a source timezone.", RED)
+            return
         if not to_raw:
-            self._set_conv("Enter a target timezone.", RED); return
+            self._set_conv("Enter a target timezone.", RED)
+            return
 
         from_tz, _ = resolve_location(from_raw)
         to_tz,   _ = resolve_location(to_raw)

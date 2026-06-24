@@ -7,7 +7,7 @@ This module checks for that on import and raises a clear error if missing.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 # ---------------------------------------------------------------------------

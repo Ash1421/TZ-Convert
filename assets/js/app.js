@@ -1,61 +1,81 @@
 /* ============================================================
    app.js — TZ-Convert
-   UI logic: tabs, converter, resolver, world clocks, autocomplete.
-   Depends on: data.js, resolver.js
+   Theme toggle, tabs, converter, resolver, world clocks,
+   all-timezones browser.
    ============================================================ */
 
 (function () {
   'use strict';
 
-  /* ── Tab switching ─────────────────────────────────────── */
+  /* ── Theme ─────────────────────────────────────────────── */
+
+  const html = document.documentElement;
+
+  function applyTheme(theme) {
+    html.setAttribute('data-theme', theme);
+    localStorage.setItem('tzc-theme', theme);
+  }
+
+  document.getElementById('theme-toggle')?.addEventListener('click', () => {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+  });
+
+  /* ── Toast ─────────────────────────────────────────────── */
+
+  const toastEl = document.getElementById('toast');
+  let toastTimer;
+
+  function showToast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2000);
+  }
+
+  /* ── Tabs ──────────────────────────────────────────────── */
 
   const tabBtns = document.querySelectorAll('.tab-btn');
   const panels  = document.querySelectorAll('.panel');
+  let zonesBuilt = false;
 
   function switchTab(name) {
-    tabBtns.forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === name);
+    tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    panels.forEach(p => {
+      const on = p.id === `tab-${name}`;
+      p.hidden = !on;
+      p.classList.toggle('active', on);
     });
-    panels.forEach(panel => {
-      const visible = panel.id === `tab-${name}`;
-      panel.hidden = !visible;
-      panel.classList.toggle('active', visible);
-    });
-    if (name === 'world') renderWorldClocks();
+    if (name === 'world')  renderWorldClocks();
+    if (name === 'zones' && !zonesBuilt) buildZonesTab();
   }
 
-  tabBtns.forEach(btn => {
-    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-  });
+  tabBtns.forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
 
-  /* ── Live UTC clock in header ──────────────────────────── */
+  /* ── Live UTC clock ────────────────────────────────────── */
 
   const clockEl = document.getElementById('live-clock');
-
   function tickClock() {
-    const now = new Date();
-    const pad = n => String(n).padStart(2, '0');
+    const now = new Date(), p = n => String(n).padStart(2, '0');
     if (clockEl) clockEl.textContent =
-      `UTC  ${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())}` +
-      `  ·  ` + now.toUTCString().slice(5, 16);
+      `UTC  ${p(now.getUTCHours())}:${p(now.getUTCMinutes())}:${p(now.getUTCSeconds())}  ·  ${now.toUTCString().slice(5,16)}`;
   }
   setInterval(tickClock, 1000);
   tickClock();
 
-  /* ── Autocomplete (shared, accepts a search function) ──── */
+  /* ── Autocomplete (shared) ─────────────────────────────── */
 
-  function bindAutocomplete(inputId, suggestId, searchFn) {
+  function bindAutocomplete(inputId, suggestId, searchFn, onSelect) {
     const input   = document.getElementById(inputId);
     const suggest = document.getElementById(suggestId);
     if (!input || !suggest) return;
+    let idx = -1;
 
-    let activeIdx = -1;
-
-    function showSuggestions(items) {
+    function show(items) {
       suggest.innerHTML = '';
-      activeIdx = -1;
+      idx = -1;
       if (!items.length) { suggest.hidden = true; return; }
-
       items.forEach(item => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -64,10 +84,7 @@
           e.preventDefault();
           input.value = item;
           suggest.hidden = true;
-          // Auto-resolve if this is the loc-input
-          if (inputId === 'loc-input') {
-            setTimeout(doResolve, 0);
-          }
+          if (onSelect) onSelect(item);
         });
         suggest.appendChild(btn);
       });
@@ -76,46 +93,42 @@
 
     input.addEventListener('input', () => {
       const q = input.value.trim();
-      if (!q) { suggest.hidden = true; return; }
-      showSuggestions(searchFn(q, 8));
+      q ? show(searchFn(q, 8)) : (suggest.hidden = true);
     });
 
     input.addEventListener('keydown', e => {
-      const items = suggest.querySelectorAll('button');
-      if (!items.length) return;
+      const btns = [...suggest.querySelectorAll('button')];
+      if (!btns.length) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        activeIdx = (activeIdx + 1) % items.length;
-        items.forEach((b, i) => b.classList.toggle('active', i === activeIdx));
+        idx = (idx + 1) % btns.length;
+        btns.forEach((b, i) => b.classList.toggle('active', i === idx));
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        activeIdx = (activeIdx - 1 + items.length) % items.length;
-        items.forEach((b, i) => b.classList.toggle('active', i === activeIdx));
-      } else if (e.key === 'Enter' && activeIdx >= 0) {
+        idx = (idx - 1 + btns.length) % btns.length;
+        btns.forEach((b, i) => b.classList.toggle('active', i === idx));
+      } else if (e.key === 'Enter' && idx >= 0) {
         e.preventDefault();
-        input.value = items[activeIdx].textContent;
+        input.value = btns[idx].textContent;
         suggest.hidden = true;
-        activeIdx = -1;
-        if (inputId === 'loc-input') doResolve();
+        idx = -1;
+        if (onSelect) onSelect(input.value);
       } else if (e.key === 'Escape') {
         suggest.hidden = true;
       }
     });
 
     document.addEventListener('click', e => {
-      if (!input.contains(e.target) && !suggest.contains(e.target)) {
+      if (!input.contains(e.target) && !suggest.contains(e.target))
         suggest.hidden = true;
-      }
     });
   }
 
-  // Converter: search IANA timezone strings
   bindAutocomplete('from-tz',  'from-suggest', TZResolver.searchTimezones);
   bindAutocomplete('to-tz',    'to-suggest',   TZResolver.searchTimezones);
-  // Resolver: search location names (cities, countries, states, aliases)
-  bindAutocomplete('loc-input', 'loc-suggest', TZResolver.searchLocations);
+  bindAutocomplete('loc-input','loc-suggest',  TZResolver.searchLocations, () => doResolve());
 
-  /* ── Converter defaults ────────────────────────────────── */
+  /* ── Converter ─────────────────────────────────────────── */
 
   const fromTzInput = document.getElementById('from-tz');
   const toTzInput   = document.getElementById('to-tz');
@@ -125,34 +138,18 @@
   if (fromTzInput) fromTzInput.value = 'UTC';
   if (toTzInput)   toTzInput.value   = 'Australia/Sydney';
 
-  /* ── Converter: Use Now ────────────────────────────────── */
-
   document.getElementById('btn-now')?.addEventListener('click', () => {
-    const now = new Date();
-    const pad = n => String(n).padStart(2, '0');
-    dtInput.value =
-      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
-      `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    const now = new Date(), p = n => String(n).padStart(2,'0');
+    dtInput.value = `${now.getFullYear()}-${p(now.getMonth()+1)}-${p(now.getDate())} ${p(now.getHours())}:${p(now.getMinutes())}`;
   });
-
-  /* ── Converter: Swap ───────────────────────────────────── */
 
   document.getElementById('btn-swap')?.addEventListener('click', () => {
-    const tmp = fromTzInput.value;
-    fromTzInput.value = toTzInput.value;
-    toTzInput.value = tmp;
+    [fromTzInput.value, toTzInput.value] = [toTzInput.value, fromTzInput.value];
   });
 
-  /* ── Converter: Convert ────────────────────────────────── */
-
-  function setConvResult(text, state = '') {
-    convResult.textContent = text;
-    convResult.className = `result-box${state ? ' ' + state : ''}`;
-  }
-
-  function setConvResultHTML(html, state = '') {
-    convResult.innerHTML = html;
-    convResult.className = `result-box${state ? ' ' + state : ''}`;
+  function setConv(html_, state = '') {
+    convResult.innerHTML = html_;
+    convResult.className = `result-box${state ? ' '+state : ''}`;
   }
 
   function doConvert() {
@@ -160,122 +157,87 @@
     const toRaw   = toTzInput.value.trim();
     const timeStr = dtInput.value.trim();
 
-    if (!timeStr) { setConvResult('Enter a date and time first.', 'err'); return; }
-    if (!fromRaw) { setConvResult('Enter a source timezone.', 'err'); return; }
-    if (!toRaw)   { setConvResult('Enter a target timezone.', 'err'); return; }
+    if (!timeStr) { setConv('Enter a date and time first.', 'err'); return; }
+    if (!fromRaw) { setConv('Enter a source timezone.', 'err'); return; }
+    if (!toRaw)   { setConv('Enter a target timezone.', 'err'); return; }
+    if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(timeStr)) {
+      setConv('Use format YYYY-MM-DD HH:MM  e.g. 2026-06-22 14:30', 'err'); return;
+    }
 
     const { iana: fromTz } = TZResolver.resolveLocation(fromRaw);
     const { iana: toTz }   = TZResolver.resolveLocation(toRaw);
 
-    if (!TZResolver.isValidIANA(fromTz)) {
-      setConvResult(`Unknown timezone: "${fromRaw}"`, 'err'); return;
-    }
-    if (!TZResolver.isValidIANA(toTz)) {
-      setConvResult(`Unknown timezone: "${toRaw}"`, 'err'); return;
-    }
-
-    if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(timeStr)) {
-      setConvResult('Use format YYYY-MM-DD HH:MM  e.g. 2026-06-22 14:30', 'err');
-      return;
-    }
+    if (!TZResolver.isValidIANA(fromTz)) { setConv(`Unknown timezone: "${fromRaw}"`, 'err'); return; }
+    if (!TZResolver.isValidIANA(toTz))   { setConv(`Unknown timezone: "${toRaw}"`, 'err'); return; }
 
     try {
-      const utcDate = TZResolver.wallClockToUTC(timeStr, fromTz);
-      const result  = TZResolver.formatInTZ(utcDate, toTz);
-      const offset  = TZResolver.getOffsetString(toTz);
-      const toNote  = toTz !== toRaw ? ` · resolved from "${toRaw}"` : '';
-
-      setConvResultHTML(
+      const utc    = TZResolver.wallClockToUTC(timeStr, fromTz);
+      const result = TZResolver.formatInTZ(utc, toTz);
+      const offset = TZResolver.getOffsetString(toTz);
+      const note   = toTz !== toRaw ? `  ·  resolved from "${toRaw}"` : '';
+      setConv(
         `<span class="result-primary">${result}</span>` +
-        `<span class="result-meta">${toTz}  ·  ${offset}${toNote}</span>`,
+        `<span class="result-meta">${toTz}  ·  ${offset}${note}</span>`,
         'ok'
       );
     } catch (err) {
-      setConvResult(`Conversion failed: ${err.message}`, 'err');
+      setConv(`Conversion failed: ${err.message}`, 'err');
     }
   }
 
   document.getElementById('btn-convert')?.addEventListener('click', doConvert);
   dtInput?.addEventListener('keydown', e => { if (e.key === 'Enter') doConvert(); });
 
-  /* ── Resolver: example chips ───────────────────────────── */
-
-  const EXAMPLES = ['Denver', 'Goodland, KS', 'PST', 'Australia', 'Auckland', 'India', 'Kansas'];
-  const chipRow  = document.getElementById('example-chips');
-  if (chipRow) {
-    EXAMPLES.forEach(ex => {
-      const btn = document.createElement('button');
-      btn.className = 'chip';
-      btn.textContent = ex;
-      btn.addEventListener('click', () => {
-        document.getElementById('loc-input').value = ex;
-        doResolve();
-      });
-      chipRow.appendChild(btn);
-    });
-  }
-
-  /* ── Resolver: resolve ─────────────────────────────────── */
+  /* ── Resolver ──────────────────────────────────────────── */
 
   const locInput  = document.getElementById('loc-input');
   const resResult = document.getElementById('res-result');
 
-  function setResResultHTML(html, state = '') {
-    resResult.innerHTML = html;
-    resResult.className = `result-box${state ? ' ' + state : ''}`;
-  }
+  const EXAMPLES = ['Denver','Goodland, KS','PST','Australia','Auckland','India','Kansas'];
+  const chipRow  = document.getElementById('example-chips');
+  if (chipRow) EXAMPLES.forEach(ex => {
+    const b = document.createElement('button');
+    b.className = 'chip'; b.textContent = ex;
+    b.addEventListener('click', () => { locInput.value = ex; doResolve(); });
+    chipRow.appendChild(b);
+  });
 
   function doResolve() {
     const loc = locInput?.value.trim();
     if (!loc) return;
-
-    // Close the suggestion dropdown
-    const locSuggest = document.getElementById('loc-suggest');
-    if (locSuggest) locSuggest.hidden = true;
+    document.getElementById('loc-suggest').hidden = true;
 
     const { iana, method } = TZResolver.resolveLocation(loc);
-
     if (!TZResolver.isValidIANA(iana)) {
-      setResResultHTML(`Could not resolve "${loc}" to a valid timezone.`, 'err');
-      return;
+      resResult.innerHTML = `Could not resolve "${loc}".`;
+      resResult.className = 'result-box err'; return;
     }
 
     const now    = new Date();
     const time   = TZResolver.formatInTZ(now, iana, {
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+      hour:'2-digit', minute:'2-digit', second:'2-digit',
+      weekday:'short', day:'numeric', month:'short', year:'numeric',
     });
-    const offset       = TZResolver.getOffsetString(iana);
-    const methodClean  = method.replace(/~/g, '→').replace(/-/g, ' ');
+    const offset = TZResolver.getOffsetString(iana);
+    const mClean = method.replace(/~/g,'→').replace(/-/g,' ');
 
-    setResResultHTML(
+    resResult.innerHTML =
       `<span class="result-primary">${iana}</span>` +
-      `<span class="result-meta">` +
-        `${time}  ·  ${offset}  ·  via ${methodClean}` +
-      `</span>` +
-      `<button class="btn-copy" id="copy-btn">Copy IANA string</button>`,
-      'ok'
-    );
+      `<span class="result-meta">${time}  ·  ${offset}  ·  via ${mClean}</span>` +
+      `<button class="btn-copy" id="copy-btn">Copy IANA string</button>`;
+    resResult.className = 'result-box ok';
 
     document.getElementById('copy-btn')?.addEventListener('click', () => {
-      const copyFn = navigator.clipboard
+      (navigator.clipboard
         ? navigator.clipboard.writeText(iana)
-        : Promise.reject();
-
-      copyFn.then(() => {
-        const btn = document.getElementById('copy-btn');
-        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy IANA string'; }, 1500); }
-      }).catch(() => {
-        // file:// fallback
+        : Promise.reject()
+      ).catch(() => {
         const el = document.createElement('textarea');
-        el.value = iana;
-        document.body.appendChild(el);
-        el.select();
-        document.execCommand('copy');
+        el.value = iana; document.body.appendChild(el);
+        el.select(); document.execCommand('copy');
         document.body.removeChild(el);
-        const btn = document.getElementById('copy-btn');
-        if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy IANA string'; }, 1500); }
-      });
+      }).finally ? null : null;
+      showToast(`Copied: ${iana}`);
     });
   }
 
@@ -289,7 +251,7 @@
   let worldTicker = null;
 
   function renderWorldClocks() {
-    if (!worldGrid) return;
+    if (!worldGrid || worldCards.length) return; // only build once
     worldGrid.innerHTML = '';
     worldCards = [];
 
@@ -320,21 +282,154 @@
     const now = new Date();
     worldCards.forEach(({ tz, timeEl, dateEl, offsetEl }) => {
       try {
-        timeEl.textContent = new Intl.DateTimeFormat('en-GB', {
-          timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+        timeEl.textContent = new Intl.DateTimeFormat('en-GB',{
+          timeZone:tz, hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
         }).format(now);
-        dateEl.textContent = new Intl.DateTimeFormat('en-GB', {
-          timeZone: tz, weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+        dateEl.textContent = new Intl.DateTimeFormat('en-GB',{
+          timeZone:tz, weekday:'short', day:'numeric', month:'short', year:'numeric'
         }).format(now);
         offsetEl.textContent = TZResolver.getOffsetString(tz);
-      } catch (_e) {
-        timeEl.textContent = '--:--:--';
-      }
+      } catch(_e) { timeEl.textContent = '--:--:--'; }
     });
   }
 
-  if (!document.getElementById('tab-world')?.hidden) {
-    renderWorldClocks();
+  /* ── All Timezones tab ─────────────────────────────────── */
+
+  const GROUP_ORDER = [
+    'UTC','America','Europe','Asia','Pacific','Australia',
+    'Africa','Atlantic','Indian','Arctic','Antarctica','Etc'
+  ];
+
+  function buildZonesTab() {
+    zonesBuilt = true;
+    const list     = document.getElementById('zones-list');
+    const countEl  = document.getElementById('zones-count');
+    const searchEl = document.getElementById('zones-search');
+    if (!list) return;
+
+    const allZones = Intl.supportedValuesOf('timeZone');
+    const now      = new Date();
+
+    // Group by region prefix
+    const groups = {};
+    allZones.forEach(tz => {
+      const region = tz.includes('/') ? tz.split('/')[0] : 'Etc';
+      (groups[region] = groups[region] || []).push(tz);
+    });
+
+    const frag = document.createDocumentFragment();
+    const orderedKeys = [
+      ...GROUP_ORDER.filter(k => groups[k]),
+      ...Object.keys(groups).filter(k => !GROUP_ORDER.includes(k)).sort()
+    ];
+
+    orderedKeys.forEach(region => {
+      const tzs = groups[region];
+      const groupEl = document.createElement('div');
+      groupEl.className = 'zone-group';
+      groupEl.dataset.region = region.toLowerCase();
+
+      const hdr = document.createElement('div');
+      hdr.className = 'zone-group-header';
+      hdr.innerHTML = `${region} <span class="zone-group-count">${tzs.length}</span>`;
+      groupEl.appendChild(hdr);
+
+      tzs.sort().forEach(tz => {
+        const timeStr = new Intl.DateTimeFormat('en-GB', {
+          timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+        }).format(now);
+        const offset = TZResolver.getOffsetString(tz);
+
+        const row = document.createElement('div');
+        row.className = 'zone-row';
+        row.dataset.search = tz.toLowerCase();
+        row.title = `Click to use ${tz} as target timezone`;
+        row.innerHTML =
+          `<span class="zone-name">${tz}</span>` +
+          `<span class="zone-time" data-tz="${tz}">${timeStr}</span>` +
+          `<span class="zone-offset">${offset}</span>`;
+        row.addEventListener('click', () => {
+          if (toTzInput) toTzInput.value = tz;
+          switchTab('converter');
+          showToast(`Set target: ${tz}`);
+        });
+        groupEl.appendChild(row);
+      });
+
+      frag.appendChild(groupEl);
+    });
+
+    // Aliases group
+    const aliasGroup = document.createElement('div');
+    aliasGroup.className = 'zone-group';
+    aliasGroup.dataset.region = 'aliases';
+
+    const aliasHdr = document.createElement('div');
+    aliasHdr.className = 'zone-group-header';
+    const aliasEntries = Object.entries(TZC.TZ_ALIASES);
+    aliasHdr.innerHTML = `Aliases <span class="zone-group-count">${aliasEntries.length}</span>`;
+    aliasGroup.appendChild(aliasHdr);
+
+    aliasEntries.sort((a,b) => a[0].localeCompare(b[0])).forEach(([alias, iana]) => {
+      let timeStr = '--:--:--', offset = '';
+      try {
+        timeStr = new Intl.DateTimeFormat('en-GB', {
+          timeZone: iana, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+        }).format(now);
+        offset = TZResolver.getOffsetString(iana);
+      } catch(_) {}
+
+      const row = document.createElement('div');
+      row.className = 'zone-row';
+      row.dataset.search = `${alias.toLowerCase()} ${iana.toLowerCase()}`;
+      row.title = `${alias} → ${iana}`;
+      row.innerHTML =
+        `<span class="zone-name">${alias}<span class="zone-alias-label">→ ${iana}</span></span>` +
+        `<span class="zone-time" data-tz="${iana}">${timeStr}</span>` +
+        `<span class="zone-offset">${offset}</span>`;
+      row.addEventListener('click', () => {
+        if (toTzInput) toTzInput.value = iana;
+        switchTab('converter');
+        showToast(`Set target: ${iana}`);
+      });
+      aliasGroup.appendChild(row);
+    });
+    frag.appendChild(aliasGroup);
+
+    list.appendChild(frag);
+
+    const total = allZones.length + aliasEntries.length;
+    if (countEl) countEl.textContent = `${total} timezones`;
+
+    // Update times every 30s
+    setInterval(() => {
+      const n = new Date();
+      list.querySelectorAll('.zone-time[data-tz]').forEach(el => {
+        try {
+          el.textContent = new Intl.DateTimeFormat('en-GB', {
+            timeZone: el.dataset.tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+          }).format(n);
+        } catch(_) {}
+      });
+    }, 30000);
+
+    // Search/filter
+    if (searchEl) searchEl.addEventListener('input', () => {
+      const q = searchEl.value.trim().toLowerCase();
+      let visible = 0;
+
+      list.querySelectorAll('.zone-row').forEach(row => {
+        const match = !q || (row.dataset.search || '').includes(q);
+        row.hidden = !match;
+        if (match) visible++;
+      });
+      list.querySelectorAll('.zone-group').forEach(g => {
+        g.hidden = ![...g.querySelectorAll('.zone-row')].some(r => !r.hidden);
+      });
+      if (countEl) countEl.textContent = q
+        ? `${visible} match${visible !== 1 ? 'es' : ''}`
+        : `${total} timezones`;
+    });
   }
 
 })();

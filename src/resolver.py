@@ -202,9 +202,12 @@ def resolve_location(location: str) -> tuple[str, str]:
     # 3. City direct lookup
     if q in CITY_TIMEZONES:
         tz = CITY_TIMEZONES[q]
-        if q in WESTERN_KANSAS_CITIES:   tz = _resolve_kansas(q)
-        if q in FLORIDA_PANHANDLE_CITIES: tz = _resolve_florida(q)
-        if q in WEST_TEXAS_CITIES:        tz = _resolve_texas(q)
+        if q in WESTERN_KANSAS_CITIES:
+            tz = _resolve_kansas(q)
+        if q in FLORIDA_PANHANDLE_CITIES:
+            tz = _resolve_florida(q)
+        if q in WEST_TEXAS_CITIES:
+            tz = _resolve_texas(q)
         return tz, "city"
 
     # 4. "City, Region" pattern
